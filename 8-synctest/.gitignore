@@ -1,6 +1,5 @@
 */
 *.zip
 *.o
-*.out*
-*.txt*
 *.out
+*.txt*
