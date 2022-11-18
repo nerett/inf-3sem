@@ -58,10 +58,7 @@ int main( int argc, char** argv )
     
     
     int workers = 2;
-    if( argc > 1 )
-    {
-        sscanf( argv[1], "%d", &workers );
-    }
+    if( argc > 1 ) sscanf( argv[1], "%d", &workers );
     
     semaphore( unlock ); //Инициализация
     
@@ -70,10 +67,7 @@ int main( int argc, char** argv )
     for( int i = 0; i < workers; i++ )
     {
         parent = fork();
-        if( !parent )
-        {
-            break;
-        }
+        if( !parent ) break;
         
         child_pid[i] = parent;
     }
@@ -105,10 +99,7 @@ int main( int argc, char** argv )
         }
         
         printf( "Finishing...\n" );
-        for( int i = 0; i < workers; i++ )
-        {
-            kill( child_pid[i], SIGHUP );
-        }
+        for( int i = 0; i < workers; i++ ) kill( child_pid[i], SIGHUP );
         //semaphore( unlock ); //Разблокировка семафора
             
         semctl( sem_id, 1, IPC_RMID, sem_arg ); //Удаляем семафоры
