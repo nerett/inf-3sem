@@ -1,49 +1,14 @@
 #include "ExtraQ.h"
 
 
-//------------------------------SHARED FUNCTION------------------------------
-void send_message( clientid_t snd_mtype, char* message )
-{
-    mymsgbuf mybuf = { 0 };
-    sndbuf.mtype = snd_mtype;
-    
-    msg_length = strlen( message ) + 1;
-    if( msg_length > MAXMSGLENGTH )
-    {
-        fprintf( stderr, "Message is above maximum length\n" );
-        msgctl( MSQID, IPC_RMID, ( struct msqid_ds* )NULL );
-        exit( -1 );
-    }
-    
-    strcpy( sndbuf.mtext, message );
-    if( msgsnd( MSQID, ( struct msgbuf* )&mybuf, msg_length, 0 ) < 0 )
-    {
-        fprintf( stderr, "Can\'t send message to queue\n" );
-        msgctl( MSQID, IPC_RMID, ( struct msqid_ds* )NULL );
-        exit( -1 );
-    }
-}
-
-int receive_message( mymsgbuf* rcv_buf, int modifier )
-{    
-    int msg_length = 0;
-    if( ( msg_length = msgrcv( MSQID, ( struct msgbuf* )&rcvbuf, MAXMSGLENGTH, MYADDR * modifier, 0 ) ) < 0 )
-    {
-        fprintf( stderr, "Can\'t receive message from queue\n" );
-        msgctl( MSQID, IPC_RMID, ( struct msqid_ds* )NULL );
-        exit( -1 );
-    }
-    
-    return msg_length;
-}
-
+//------------------------------CLIENT FUNCTION------------------------------
 clientid_t request_addr( char* name )
 {
-    char* request_string[MAXMSGLENGTH] = "";
+    char request_string[MAXMSGLENGTH] = "";
     sprintf( request_string, "%d:%s", MYADDR * REQUEST_ID_MOD, name );
     send_message( REQUEST_ID_MTYPE, request_string );
     
-    mymsgbuf mybuf = { 0 };
+    struct mymsgbuf mybuf = { 0 };
     receive_message( &mybuf, REQUEST_ID_MOD );
     
     clientid_t id = 0;
@@ -54,13 +19,13 @@ clientid_t request_addr( char* name )
 
 void reg_name( char* myname )
 {
-    char* request_string[MAXMSGLENGTH] = "";
+    char request_string[MAXMSGLENGTH] = "";
     sprintf( request_string, "%d:%s", MYADDR * REGISTER_MOD, myname );
     send_message( REGISTER_MTYPE, request_string );
     
-    mymsgbuf mybuf = { 0 };
+    struct mymsgbuf mybuf = { 0 };
     receive_message( &mybuf, REGISTER_MOD );
-    sscanf( mybuf.mtext, "%d", &MYID );
+    sscanf( mybuf.mtext, "%d", &MYADDR );
 }
 
 
@@ -69,7 +34,7 @@ void* listen_func( void* arg )
 {
     while( RUN_FLAG )
     {
-        mymsgbuf mybuf = { 0 };
+        struct mymsgbuf mybuf = { 0 };
         receive_message( &mybuf, MESSAGE_MOD );
         
         printf( "%s\n", mybuf.mtext );
@@ -86,7 +51,7 @@ void* speak_func( void* arg )
         char message[MAXMSGLENGTH] = "";
         scanf( "%s:%s", rcv_name, message );
         
-        rcv_addr = request_addr( rcv_name );
+        clientid_t rcv_addr = request_addr( rcv_name );
         send_message( rcv_addr, message );
     }
     
@@ -95,9 +60,12 @@ void* speak_func( void* arg )
 
 void* keepalive_func( void* arg )
 {
+    char request_string[MAXMSGLENGTH] = "";
+    sprintf( request_string, "%d", MYADDR );
+    
     while( RUN_FLAG )
     {
-        send_message( KEEP_ALIVE_MTYPE, MYADDR );
+        send_message( KEEP_ALIVE_MTYPE, request_string );
         sleep( KEEPALIVE_TIMEOUT );
     }
     
