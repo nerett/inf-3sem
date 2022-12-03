@@ -74,6 +74,8 @@ const int KEEP_ALIVE_MOD = 100;
 const int KEEPALIVE_TIMEOUT = 5;
 const int RETRY_TIMEOUT = 5;
 
+const int TMP_ADDRESS_RANGE = 10000;
+
 clientid_t MYADDR = 0;
 int MSQID = 0;
 char MYNAME[MAXMSGLENGTH] = "";

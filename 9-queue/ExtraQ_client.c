@@ -19,9 +19,11 @@ clientid_t request_addr( char* name )
 
 void reg_name( char* myname )
 {
+    srand( time( NULL ) );
+    
     while( RUN_FLAG )
     {
-        clientid_t tmp_addr = 
+        clientid_t tmp_addr = rand() % TMP_ADDRESS_RANGE + MAXCLIENTS;
         
         char request_string[MAXMSGLENGTH] = "";
         sprintf( request_string, "%d:%s", tmp_addr, myname ); //MYADDR * REGISTER_MOD
@@ -34,12 +36,13 @@ void reg_name( char* myname )
         receive_message( &mybuf, REGISTER_MOD );
         sscanf( mybuf.mtext, "%d:%s", &ret_addr, ret_name );
         
-        if( !strcmp( myname, ret_name ) ) //!TODO случайное число для улучшения защиты от коллизий
+        if( !strcmp( myname, ret_name ) ) //!TODO случайное число как отдельный параметр для улучшения защиты от коллизий
         {
             MYADDR = ret_addr;
             return;
         }
         
+        fprintf( stderr, "Registration failed, retrying in %d seconds...\n", RETRY_TIMEOUT );
         sleep( RETRY_TIMEOUT );
     }
 }
