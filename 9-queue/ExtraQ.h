@@ -34,26 +34,11 @@
 
 #define MAXMSGLENGTH 128
 
+#define N_NAME_RESOLVE_TH 10
+#define MAXCLIENTS 100
+#define MAXNAMELENGTH 20
+
 typedef int clientid_t;
-
-const char PATHNAME[] = "arbitrator_sync.txt";
-
-const id_t REQUEST_ID_MTYPE = 0;
-const id_t REGISTER_MTYPE = 1;
-const id_t KEEP_ALIVE_MTYPE = 2;
-
-const int MESSAGE_MOD = 1;
-const int REQUEST_ID_MOD = 10;
-const int REGISTER_MOD = 100;
-
-const int KEEPALIVE_TIMEOUT = 5;
-
-clientid_t MYADDR = 9999;
-int MSQID = 0;
-char MYNAME[MAXMSGLENGTH] = "";
-
-int RUN_FLAG = 1;
-
 
 struct mymsgbuf
 {
@@ -61,8 +46,59 @@ struct mymsgbuf
     char mtext[MAXMSGLENGTH];
 };
 
+/* 
+ * Общение с сервером (арбитром очереди) происходит сразу через несколько "каналов" (типов сообщений):
+ * X, X0 и X00, где X - адрес клиента (тип сообщений, на которые он реагирует).
+ * Адрес клиенту присваивает сервер, адрес сервера считается равным 1 (для сервера X всегда равен 1).
+ * Через определённый канал отправляются сообщения строго определённого назначения, что позволяет обрабатывать
+ * заведомо разные сообщения разным образом (в т.ч. разными потоками), при этом сохраняется простота и
+ * унификация адресации при небольшом количестве общеизвестных параметров.
+*/
+
+const char PATHNAME[] = "arbitrator_sync.txt";
+
+const int ADDRESS_OFFSET = 2;
+const int INITIAL_ACTIVITY = 2;
+
+const char NULL_STRING[MAXNAMELENGTH] = "";
+
+const id_t REQUEST_ID_MTYPE = 10;
+const id_t REGISTER_MTYPE = 100;
+const id_t KEEP_ALIVE_MTYPE = 1;
+
+const int MESSAGE_MOD = 1;
+const int REQUEST_ID_MOD = 10;
+const int REGISTER_MOD = 1;
+const int KEEP_ALIVE_MOD = 100;
+
+const int KEEPALIVE_TIMEOUT = 5;
+const int RETRY_TIMEOUT = 5;
+
+clientid_t MYADDR = 0;
+int MSQID = 0;
+char MYNAME[MAXMSGLENGTH] = "";
+
+int RUN_FLAG = 1;
+
 
 //------------------------------SHARED FUNCTION------------------------------
+void delete_message_queue()
+{
+    msgctl( MSQID, IPC_RMID, ( struct msqid_ds* )NULL );
+}
+
+void configure_message_queue()
+{
+    key_t key = ftok( PATHNAME, 0 );
+    
+    if( ( MSQID = msgget( key, 0666 | IPC_CREAT ) ) < 0 )
+    {
+        printf( "Can\'t get msqid\n" );
+        delete_message_queue();
+        exit( -1 );
+    }
+}
+
 void send_message( clientid_t snd_mtype, char* message )
 {
     struct mymsgbuf mybuf = { 0 };
@@ -72,7 +108,7 @@ void send_message( clientid_t snd_mtype, char* message )
     if( msg_length > MAXMSGLENGTH )
     {
         fprintf( stderr, "Message is above maximum length\n" );
-        msgctl( MSQID, IPC_RMID, ( struct msqid_ds* )NULL );
+        delete_message_queue();
         exit( -1 );
     }
     
@@ -80,7 +116,7 @@ void send_message( clientid_t snd_mtype, char* message )
     if( msgsnd( MSQID, ( struct msgbuf* )&mybuf, msg_length, 0 ) < 0 )
     {
         fprintf( stderr, "Can\'t send message to queue\n" );
-        msgctl( MSQID, IPC_RMID, ( struct msqid_ds* )NULL );
+        delete_message_queue();
         exit( -1 );
     }
 }
@@ -91,7 +127,7 @@ int receive_message( struct mymsgbuf* rcv_buf, int modifier )
     if( ( msg_length = msgrcv( MSQID, ( struct msgbuf* )&rcv_buf, MAXMSGLENGTH, MYADDR * modifier, 0 ) ) < 0 )
     {
         fprintf( stderr, "Can\'t receive message from queue\n" );
-        msgctl( MSQID, IPC_RMID, ( struct msqid_ds* )NULL );
+        delete_message_queue();
         exit( -1 );
     }
     
