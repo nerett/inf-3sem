@@ -114,6 +114,7 @@ void* register_func()
 void* keepalive_func( void* arg )
 {
     //!TODO двухступенчатая схема с is_active
+    //!TODO добавить очистку сообщений для неактивных пользователей
     
     while( RUN_FLAG )
     {

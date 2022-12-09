@@ -52,7 +52,7 @@ struct mymsgbuf
  * Адрес клиенту присваивает сервер, адрес сервера считается равным 1 (для сервера X всегда равен 1).
  * Через определённый канал отправляются сообщения строго определённого назначения, что позволяет обрабатывать
  * заведомо разные сообщения разным образом (в т.ч. разными потоками), при этом сохраняется простота и
- * унификация адресации при небольшом количестве общеизвестных параметров.
+ * унификация адресации при небольшом количестве общеизвестных параметров. Это похоже на концепцию виртуальных портов.
 */
 
 const char PATHNAME[] = "arbitrator_sync.txt";
@@ -68,8 +68,8 @@ const id_t KEEP_ALIVE_MTYPE = 1;
 
 const int MESSAGE_MOD = 1;
 const int REQUEST_ID_MOD = 10;
-const int REGISTER_MOD = 1;
-const int KEEP_ALIVE_MOD = 100;
+const int REGISTER_MOD = 100;
+const int KEEP_ALIVE_MOD = 1;
 
 const int KEEPALIVE_TIMEOUT = 5;
 const int RETRY_TIMEOUT = 5;

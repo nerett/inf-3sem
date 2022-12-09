@@ -24,9 +24,10 @@ void reg_name( char* myname )
     while( RUN_FLAG )
     {
         clientid_t tmp_addr = rand() % TMP_ADDRESS_RANGE + MAXCLIENTS;
+        MYADDR = tmp_addr;
         
         char request_string[MAXMSGLENGTH] = "";
-        sprintf( request_string, "%d:%s", tmp_addr, myname ); //MYADDR * REGISTER_MOD
+        sprintf( request_string, "%d:%s", tmp_addr * REGISTER_MOD, myname ); //MYADDR * REGISTER_MOD
         send_message( REGISTER_MTYPE, request_string );
         
         char ret_name[MAXMSGLENGTH] = "";
@@ -36,7 +37,7 @@ void reg_name( char* myname )
         receive_message( &mybuf, REGISTER_MOD );
         sscanf( mybuf.mtext, "%d:%s", &ret_addr, ret_name );
         
-        if( !strcmp( myname, ret_name ) ) //!TODO случайное число как отдельный параметр для улучшения защиты от коллизий
+        if( ret_addr && !strcmp( myname, ret_name ) ) //!TODO случайное число как отдельный параметр для улучшения защиты от коллизий
         {
             MYADDR = ret_addr;
             return;
@@ -66,11 +67,17 @@ void* speak_func( void* arg )
 {
     while( RUN_FLAG )
     {
-        char rcv_name[MAXMSGLENGTH] = "";
+        char rcv_name[MAXNAMELENGTH] = "";
         char message[MAXMSGLENGTH] = "";
         scanf( "%s:%s", rcv_name, message );
         
         clientid_t rcv_addr = request_addr( rcv_name );
+        if( !rcv_addr )
+        {
+            printf( "%s is offline.\n", rcv_name );
+            continue;
+        }
+        
         send_message( rcv_addr, message );
     }
     
@@ -80,7 +87,7 @@ void* speak_func( void* arg )
 void* keepalive_func( void* arg )
 {
     char request_string[MAXMSGLENGTH] = "";
-    sprintf( request_string, "%d", MYADDR );
+    sprintf( request_string, "%d:%s", MYADDR, MYNAME );
     
     while( RUN_FLAG )
     {
