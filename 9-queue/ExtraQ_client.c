@@ -25,6 +25,7 @@ void reg_name( char* myname )
     {
         clientid_t tmp_addr = rand() % TMP_ADDRESS_RANGE + MAXCLIENTS;
         MYADDR = tmp_addr;
+        strncpy( MYNAME, myname, MAXNAMELENGTH ); //!TODO remove
         fprintf( stderr, "[reg_name] Acquired tmp_address = %d\n", tmp_addr );
         
         char request_string[MAXMSGLENGTH] = "";
@@ -38,8 +39,9 @@ void reg_name( char* myname )
         struct mymsgbuf mybuf = { 0 };
         receive_message( &mybuf, REGISTER_MOD );
         fprintf( stderr, "[reg_name] Received mybuf.mtext = %s\n", mybuf.mtext );
-        sscanf( mybuf.mtext, "%d:%s", &ret_addr, ret_name );
+        sscanf( mybuf.mtext, "%s:%d", ret_name, &ret_addr );
         
+        fprintf( stderr, "[reg_name] Got ret_addr = %d, ret_name = %s, myname = %s\n", ret_addr, ret_name, myname );
         if( ret_addr && !strcmp( myname, ret_name ) ) //!TODO случайное число как отдельный параметр для улучшения защиты от коллизий
         {
             MYADDR = ret_addr;

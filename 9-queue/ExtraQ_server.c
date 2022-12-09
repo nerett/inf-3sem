@@ -93,10 +93,11 @@ void* register_func()
         {
             for( int i = ADDRESS_OFFSET; i < MAXCLIENTS; i++ )
             {
-                if( !strcmp( clients[i].name, "" ) )
+                if( !clients[i].address ) //!strcmp( clients[i].name, "" )
                 {
                     strncpy( clients[i].name, register_name, MAXNAMELENGTH );
                     register_addr = n_clients + ADDRESS_OFFSET;
+                    fprintf( stderr, "[register_func] Generated new register_addr = %d for register_name = %s\n", register_addr, register_name );
                     clients[i].address = register_addr;
                     clients[i].active = INITIAL_ACTIVITY;
                     
@@ -107,6 +108,7 @@ void* register_func()
         }
         
         unlock_nametable();
+        fprintf( stderr, "[register_func] unlock_nametable() success\n" );
         
         char request_string[MAXMSGLENGTH] = "";
         sprintf( request_string, "%s:%d", register_name, register_addr ); //!TODO случайное число для увеличения защиты от коллизий
@@ -121,13 +123,16 @@ void* keepalive_func( void* arg )
     
     while( RUN_FLAG )
     {
+        fprintf( stderr, "[keepalive_func] lock_nametable() attempt\n" );
         lock_nametable();
+        fprintf( stderr, "[keepalive_func] lock_nametable() success\n" );
         
         struct mymsgbuf mybuf = { 0 };
-        while( msgrcv( MSQID, ( struct msgbuf* )&mybuf, MAXMSGLENGTH, MYADDR * KEEP_ALIVE_MOD, 0 & IPC_NOWAIT ) >= 0 ) //>=0 >0
+        while( msgrcv( MSQID, ( struct msgbuf* )&mybuf, MAXMSGLENGTH, MYADDR * KEEP_ALIVE_MOD, 0 | IPC_NOWAIT ) >= 0 ) //>=0 >0
         {
             clientid_t sender_addr = 0;
             char sender_name[MAXMSGLENGTH] = "";
+            fprintf( stderr, "[keepalive_func] Received mtext = %s\n", mybuf.mtext );
             sscanf( mybuf.mtext, "%d:%s", &sender_addr, sender_name ); //!TODO ассоциативный массив
             
             if( ( sender_addr > MAXCLIENTS ) || strcmp( clients[sender_addr].name, sender_name ) ) //! < 0 ?
@@ -139,9 +144,10 @@ void* keepalive_func( void* arg )
             clients[sender_addr].active = INITIAL_ACTIVITY;
         }
         
+        fprintf( stderr, "[keepalive_func] Starting activity review\n" );
         for( int i = ADDRESS_OFFSET; i < MAXCLIENTS; i++ ) //active -> inactive & inactive -> remove
         {
-            clients[i].active--;
+            if( clients[i].address ) clients[i].active--;
             
             if( clients[i].active < 0 )
             {
@@ -149,11 +155,13 @@ void* keepalive_func( void* arg )
                 clients[i].address = 0;
                 clients[i].active = 0;
                 
-                n_clients--;
+                n_clients--; //!TODO semaphore
+                fprintf( stderr, "[keepalive_func] n_clients--, n_clients = %d\n", n_clients );
             }
         }
         
         unlock_nametable();
+        fprintf( stderr, "[keepalive_func] unlock_nametable() success\n" );
         
         sleep( KEEPALIVE_TIMEOUT );
     }
@@ -168,6 +176,8 @@ int main()
     
     MYADDR = 1;
     NAMETABLE_ACCESSED = 0;
+    n_clients = 0;
+    
     pthread_t nameresolve_thread[N_NAME_RESOLVE_TH] = { 0 }, keepalive_thread = 0, register_thread = 0;
     
     printf( "[ARBITRATOR] Creating additional threads...\n" );
