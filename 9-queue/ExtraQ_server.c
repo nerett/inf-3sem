@@ -70,12 +70,15 @@ void* register_func()
         
         clientid_t tmp_sender_addr = 0;
         char register_name[MAXNAMELENGTH] = "";
+        fprintf( stderr, "[register_func] Received mybuf.mtext = %s\n", mybuf.mtext );
         sscanf( mybuf.mtext, "%d:%s", &tmp_sender_addr, register_name );
         
         clientid_t register_addr = 0;
         int unique = 1;
         
+        fprintf( stderr, "[register_func] lock_nametable() attempt\n" );
         lock_nametable();
+        fprintf( stderr, "[register_func] lock_nametable() success\n" );
         
         for( int i = ADDRESS_OFFSET; i < MAXCLIENTS; i++ )
         {
@@ -121,7 +124,7 @@ void* keepalive_func( void* arg )
         lock_nametable();
         
         struct mymsgbuf mybuf = { 0 };
-        while( msgrcv( MSQID, ( struct msgbuf* )&mybuf, MAXMSGLENGTH, MYADDR * KEEP_ALIVE_MOD, 0 & IPC_NOWAIT ) >= 0 )
+        while( msgrcv( MSQID, ( struct msgbuf* )&mybuf, MAXMSGLENGTH, MYADDR * KEEP_ALIVE_MOD, 0 & IPC_NOWAIT ) >= 0 ) //>=0 >0
         {
             clientid_t sender_addr = 0;
             char sender_name[MAXMSGLENGTH] = "";
@@ -164,6 +167,7 @@ int main()
     printf( "[ARBITRATOR] Starting...\n" );
     
     MYADDR = 1;
+    NAMETABLE_ACCESSED = 0;
     pthread_t nameresolve_thread[N_NAME_RESOLVE_TH] = { 0 }, keepalive_thread = 0, register_thread = 0;
     
     printf( "[ARBITRATOR] Creating additional threads...\n" );

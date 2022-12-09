@@ -25,9 +25,11 @@ void reg_name( char* myname )
     {
         clientid_t tmp_addr = rand() % TMP_ADDRESS_RANGE + MAXCLIENTS;
         MYADDR = tmp_addr;
+        fprintf( stderr, "[reg_name] Acquired tmp_address = %d\n", tmp_addr );
         
         char request_string[MAXMSGLENGTH] = "";
         sprintf( request_string, "%d:%s", tmp_addr * REGISTER_MOD, myname ); //MYADDR * REGISTER_MOD
+        fprintf( stderr, "[reg_name] Sending request_string = %s\n", request_string );
         send_message( REGISTER_MTYPE, request_string );
         
         char ret_name[MAXMSGLENGTH] = "";
@@ -35,6 +37,7 @@ void reg_name( char* myname )
         
         struct mymsgbuf mybuf = { 0 };
         receive_message( &mybuf, REGISTER_MOD );
+        fprintf( stderr, "[reg_name] Received mybuf.mtext = %s\n", mybuf.mtext );
         sscanf( mybuf.mtext, "%d:%s", &ret_addr, ret_name );
         
         if( ret_addr && !strcmp( myname, ret_name ) ) //!TODO случайное число как отдельный параметр для улучшения защиты от коллизий
@@ -43,7 +46,7 @@ void reg_name( char* myname )
             return;
         }
         
-        fprintf( stderr, "Registration failed, retrying in %d seconds...\n", RETRY_TIMEOUT );
+        fprintf( stderr, "[reg_name] Registration failed, retrying in %d seconds...\n", RETRY_TIMEOUT );
         sleep( RETRY_TIMEOUT );
     }
 }

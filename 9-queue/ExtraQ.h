@@ -114,7 +114,8 @@ void send_message( clientid_t snd_mtype, char* message )
         exit( -1 );
     }
     
-    strcpy( mybuf.mtext, message );
+    strncpy( mybuf.mtext, message, MAXMSGLENGTH );
+    fprintf( stderr, "[send_message] Sending message with MSQID = %d, mtext = %s, mtype = %d, msg_length = %d\n", MSQID, mybuf.mtext, mybuf.mtype, msg_length );
     if( msgsnd( MSQID, ( struct msgbuf* )&mybuf, msg_length, 0 ) < 0 )
     {
         fprintf( stderr, "Can\'t send message to queue\n" );
@@ -126,12 +127,13 @@ void send_message( clientid_t snd_mtype, char* message )
 int receive_message( struct mymsgbuf* rcv_buf, int modifier )
 {    
     int msg_length = 0;
-    if( ( msg_length = msgrcv( MSQID, ( struct msgbuf* )&rcv_buf, MAXMSGLENGTH, MYADDR * modifier, 0 ) ) < 0 )
+    if( ( msg_length = msgrcv( MSQID, ( struct msgbuf* )rcv_buf, MAXMSGLENGTH, MYADDR * modifier, 0 ) ) < 0 )
     {
         fprintf( stderr, "Can\'t receive message from queue\n" );
         delete_message_queue();
         exit( -1 );
     }
+    fprintf( stderr, "[receive_message] Received message with MSQID = %d, mtext = %s, mtype = %d\n", MSQID, rcv_buf->mtext, rcv_buf->mtype );
     
     return msg_length;
 }
