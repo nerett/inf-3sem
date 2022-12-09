@@ -160,22 +160,34 @@ void* keepalive_func( void* arg )
 //------------------------------MAIN FUNCTION------------------------------
 int main()
 {
+    printf( "[ARBITRATOR] Starting...\n" );
+    
     MYADDR = 1;
     pthread_t nameresolve_thread[N_NAME_RESOLVE_TH] = { 0 }, keepalive_thread = 0, register_thread = 0;
     
+    printf( "[ARBITRATOR] Creating additional threads...\n" );
     size_t errors = pthread_create( &keepalive_thread, NULL, &keepalive_func, NULL );
     errors += pthread_create( &register_thread, NULL, &register_func, NULL );
     for( int i = 0; i < N_NAME_RESOLVE_TH; i++ )
     {
         errors += pthread_create( &nameresolve_thread[i], NULL, &nameresolve_func, NULL );
     }
-    
+
     if( errors )
     {
         fprintf( stderr, "Cannot create 1 or more threads\n" );
         delete_message_queue();
         exit( -1 );
     }
+    printf( "[ARBITRATOR] Threads created successfully.\n" );
     
+    pthread_join( keepalive_thread, NULL );
+    pthread_join( register_thread, NULL );
+    for( int i = 0; i < N_NAME_RESOLVE_TH; i++ )
+    {
+        pthread_join( nameresolve_thread[i], NULL );
+    }
+    
+    printf( "[ARBITRATOR] Exiting...\n" );
     return 0;
 }
